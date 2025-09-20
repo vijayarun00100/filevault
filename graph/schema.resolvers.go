@@ -8,24 +8,31 @@ import (
 	"context"
 	"filevault/graph/model"
 	"fmt"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, name string, email string, password string) (*model.User, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+
 	var id int
-	err := r.DB.Conn.QueryRow(ctx,
+	err = r.DB.Conn.QueryRow(ctx,
 		"INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id",
-		name, email, password,
+		name, email, string(hashedPassword),
 	).Scan(&id)
 	if err != nil {
 		return nil, err
 	}
 
 	return &model.User{
-		ID:       fmt.Sprintf("%d", id), // convert int -> string
+		ID:       fmt.Sprintf("%d", id),
 		Name:     &name,
 		Email:    email,
-		Password: password,
+		Password: string(hashedPassword),
 	}, nil
 }
 
@@ -41,8 +48,40 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (bool, err
 	return true, nil
 }
 
-// Users is the resolver for the users field.
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*model.AuthPayload, error) {
+	var u model.User
+	err := r.DB.Conn.QueryRow(ctx, "SELECT id, name, email, password FROM users WHERE email=$1", email).
+		Scan(&u.ID, &u.Name, &u.Email, &u.Password)
+	if err != nil {
+		return nil, fmt.Errorf("no user found with email %s", email)
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
+		return nil, fmt.Errorf("invalid password")
+	}
+
+	token, err := generateJWT(u.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	u.Password = ""
+
+	return &model.AuthPayload{
+		User:  &u,
+		Token: token,
+	}, nil
+}
+
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
+	userID, authenticated := GetUserIDFromCtx(ctx)
+	if !authenticated {
+		return nil, fmt.Errorf("authentication required")
+	}
+
+	fmt.Printf("Authenticated user %s is requesting users list\n", userID)
+
 	rows, err := r.DB.Conn.Query(ctx, "SELECT id, name, email FROM users")
 	if err != nil {
 		return nil, err

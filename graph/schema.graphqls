@@ -12,11 +12,22 @@ type File {
     filename: String!
     path: String!
     uploadedAt: String!
+    downloadFile:String!
+    size: Int!
 }
+
+type StorageInfo {
+    totalFiles: Int!
+    totalSize: Int!
+    formattedSize: String!
+}
+
 
 type Query {
     users: [User!]!
     userFiles(userID: ID!): [File!]!
+    downloadFile(fileID: ID!): File!
+    userStorageInfo(userID: ID!): StorageInfo!
 }
 
 type AuthPayload {
@@ -29,4 +40,5 @@ type Mutation {
     deleteUser(id: ID!): Boolean!
     login(email: String!, password: String!): AuthPayload!
     uploadFile(userID: ID!, file: Upload!): File!
+    deleteFile(fileID: ID!): Boolean!
 }

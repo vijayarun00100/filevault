@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -10,15 +11,17 @@ import (
 	"filevault/db"
 	"filevault/graph"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 func main() {
-	// Load environment variables from .env file
+
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using system environment variables")
 	}
@@ -29,17 +32,33 @@ func main() {
 		log.Fatal(err)
 	}
 
-	resolver := &graph.Resolver{DB: database}
-	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: resolver}))
+	graph.InitSupabase()
+
+	srv := handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{DB: database}}))
+	srv.AddTransport(transport.Websocket{})
+	srv.AddTransport(transport.Options{})
+	srv.AddTransport(transport.GET{})
+	srv.AddTransport(transport.POST{})
 	srv.AddTransport(transport.MultipartForm{})
+
+	// Add error handling
+	srv.SetErrorPresenter(func(ctx context.Context, e error) *gqlerror.Error {
+		log.Printf("GraphQL Error: %v", e)
+		return graphql.DefaultErrorPresenter(ctx, e)
+	})
+
 	http.Handle("/", playground.Handler("GraphQL Playground", "/query"))
 	http.Handle("/query", AuthMiddleware(srv))
-
+	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("./uploads"))))
+	http.HandleFunc("/download/", PublicDownloadHandler(database))
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
+
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Request: %s %s", r.Method, r.URL.Path)
+		log.Printf("Content-Type: %s", r.Header.Get("Content-Type"))
 
 		auth := r.Header.Get("Authorization")
 		if auth == "" {
@@ -57,7 +76,11 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		log.Printf("Processing token: %s...", tokenStr[:20])
+		tokenPreview := tokenStr
+		if len(tokenStr) > 20 {
+			tokenPreview = tokenStr[:20] + "..."
+		}
+		log.Printf("Processing token: %s", tokenPreview)
 
 		claims := jwt.MapClaims{}
 		token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
@@ -82,4 +105,38 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 func getJWTSecret() string {
 	return os.Getenv("JWT_CODE")
+}
+
+func PublicDownloadHandler(database *db.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract file ID from URL path
+		fileID := strings.TrimPrefix(r.URL.Path, "/download/")
+		if fileID == "" {
+			http.Error(w, "File ID required", http.StatusBadRequest)
+			return
+		}
+
+		log.Printf("Public download request for file ID: %s", fileID)
+
+		// Get file info from database
+		var filename, path string
+		err := database.Conn.QueryRow(context.Background(),
+			"SELECT filename, path FROM files WHERE id=$1", fileID).Scan(&filename, &path)
+
+		if err != nil {
+			log.Printf("File not found: %v", err)
+			http.Error(w, "File not found", http.StatusNotFound)
+			return
+		}
+
+		bucket := "filevault"
+		supabaseURL := os.Getenv("SUPABASE_URL")
+		downloadURL := fmt.Sprintf("%s/storage/v1/object/public/%s/%s", supabaseURL, bucket, path)
+
+		log.Printf("Redirecting to: %s", downloadURL)
+
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+
+		http.Redirect(w, r, downloadURL, http.StatusFound)
+	}
 }

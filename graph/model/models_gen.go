@@ -8,16 +8,24 @@ type AuthPayload struct {
 }
 
 type File struct {
-	ID         string `json:"id"`
-	Filename   string `json:"filename"`
-	Path       string `json:"path"`
-	UploadedAt string `json:"uploadedAt"`
+	ID           string `json:"id"`
+	Filename     string `json:"filename"`
+	Path         string `json:"path"`
+	UploadedAt   string `json:"uploadedAt"`
+	DownloadFile string `json:"downloadFile"`
+	Size         int32  `json:"size"`
 }
 
 type Mutation struct {
 }
 
 type Query struct {
+}
+
+type StorageInfo struct {
+	TotalFiles    int32  `json:"totalFiles"`
+	TotalSize     int32  `json:"totalSize"`
+	FormattedSize string `json:"formattedSize"`
 }
 
 type User struct {

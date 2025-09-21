@@ -8,7 +8,11 @@ import (
 	"context"
 	"filevault/graph/model"
 	"fmt"
+	"io"
+	"os"
+	"time"
 
+	"github.com/99designs/gqlgen/graphql"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -74,6 +78,46 @@ func (r *mutationResolver) Login(ctx context.Context, email string, password str
 	}, nil
 }
 
+// UploadFile is the resolver for the uploadFile field.
+func (r *mutationResolver) UploadFile(ctx context.Context, userID string, file graphql.Upload) (*model.File, error) {
+	// Create user folder if not exists
+	folder := fmt.Sprintf("./uploads/user_%s", userID)
+	if err := os.MkdirAll(folder, os.ModePerm); err != nil {
+		return nil, err
+	}
+
+	// Save file locally
+	outPath := fmt.Sprintf("%s/%s", folder, file.Filename)
+	outFile, err := os.Create(outPath)
+	if err != nil {
+		return nil, err
+	}
+	defer outFile.Close()
+
+	_, err = io.Copy(outFile, file.File)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save metadata in DB
+	var id int
+	err = r.DB.Conn.QueryRow(ctx,
+		"INSERT INTO files (user_id, filename, path) VALUES ($1, $2, $3) RETURNING id",
+		userID, file.Filename, outPath,
+	).Scan(&id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.File{
+		ID:         fmt.Sprintf("%d", id),
+		Filename:   file.Filename,
+		Path:       outPath,
+		UploadedAt: time.Now().Format(time.RFC3339),
+	}, nil
+}
+
+// Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	userID, authenticated := GetUserIDFromCtx(ctx)
 	if !authenticated {
@@ -99,15 +143,26 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return users, nil
 }
 
-// User is the resolver for the user field.
-func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
-	var u model.User
-	err := r.DB.Conn.QueryRow(ctx, "SELECT id, name, email FROM users WHERE id=$1", id).
-		Scan(&u.ID, &u.Name, &u.Email)
+// UserFiles is the resolver for the userFiles field.
+func (r *queryResolver) UserFiles(ctx context.Context, userID string) ([]*model.File, error) {
+	rows, err := r.DB.Conn.Query(ctx, "SELECT id, filename, path, uploaded_at FROM files WHERE user_id=$1", userID)
 	if err != nil {
 		return nil, err
 	}
-	return &u, nil
+	defer rows.Close()
+
+	var files []*model.File
+	for rows.Next() {
+		var f model.File
+		var uploadedAt time.Time
+		if err := rows.Scan(&f.ID, &f.Filename, &f.Path, &uploadedAt); err != nil {
+			return nil, err
+		}
+		f.UploadedAt = uploadedAt.Format(time.RFC3339)
+		files = append(files, &f)
+	}
+
+	return files, nil
 }
 
 // Mutation returns MutationResolver implementation.

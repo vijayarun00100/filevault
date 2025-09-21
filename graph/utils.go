@@ -2,6 +2,7 @@ package graph
 
 import (
 	"context"
+	"log"
 	"os"
 	"time"
 
@@ -12,22 +13,22 @@ type ctxKey string
 
 const userCtxKey ctxKey = "user_id"
 
-var jwtKey = []byte(processEnv("JWT_CODE"))
 
-func processEnv(key string) string {
-	value := os.Getenv(key)
-	if value == "" {
-
-		return ""
+func getJWTSecret() string {
+	s := "dev-secret"
+	if env := os.Getenv("JWT_CODE"); env != "" {
+		s = env
 	}
-	return value
+	return s
 }
 
 func generateJWT(userID string) (string, error) {
+	jwtKey := []byte(getJWTSecret())
+	log.Printf("Generating JWT with secret: %s", string(jwtKey))
 
 	claims := jwt.MapClaims{
 		"user_id": userID,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(), // Token expires in 24 hours
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 		"iat":     time.Now().Unix(),
 	}
 

@@ -1,3 +1,5 @@
+scalar Upload
+
 type User {
     id: ID!
     name: String
@@ -5,19 +7,26 @@ type User {
     password: String!
 }
 
+type File {
+    id: ID!
+    filename: String!
+    path: String!
+    uploadedAt: String!
+}
+
 type Query {
     users: [User!]!
-    user(id: ID!): User
+    userFiles(userID: ID!): [File!]!
 }
 
 type AuthPayload {
-    token : String!
-    user : User!
+    token: String!
+    user: User!
 }
 
-type Mutation{
-    createUser(name: String!, email: String!, password : String!): User!
+type Mutation {
+    createUser(name: String!, email: String!, password: String!): User!
     deleteUser(id: ID!): Boolean!
-    login(email:String! , password:String!) : AuthPayload!
+    login(email: String!, password: String!): AuthPayload!
+    uploadFile(userID: ID!, file: Upload!): File!
 }
- 

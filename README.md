@@ -1,4 +1,4 @@
-# 🗄️ FileVault - Cloud Storage Platform
+# FileVault - Cloud Storage Platform
 
 <div align="center">
 
@@ -14,21 +14,21 @@
 [![Render](https://img.shields.io/badge/Render-46E3B7?style=flat&logo=render&logoColor=white)](https://render.com/)
 [![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white)](https://vercel.com/)
 
-[🚀 Live Demo](https://filevault-frontend.vercel.app/) • [📖 Documentation](#documentation) • [🛠️ Installation](#installation)
+[Live Demo](https://filevault-frontend.vercel.app/) • [Documentation](#documentation) • [Installation](#installation)
 
 </div>
 
 ---
 
-## ✨ Features
+## Features
 
-### 🔐 **Authentication & Security**
+### Authentication & Security
 - **JWT-based Authentication** - Secure token-based user sessions
 - **Password Protection** - Encrypted user credentials
 - **Admin Panel Access** - Password-protected administrative interface
 - **User Management** - Complete user registration and login system
 
-### 📁 **File Management**
+### File Management
 - **Drag & Drop Upload** - Intuitive file upload with progress tracking
 - **Multi-file Upload** - Upload multiple files simultaneously
 - **File Organization** - Organized storage with user-specific folders
@@ -36,7 +36,7 @@
 - **Download System** - Secure file download with proper authentication
 - **File Deletion** - Remove unwanted files with confirmation
 
-### 🎨 **User Interface**
+### User Interface
 - **Modern Design** - Beautiful, responsive UI with Tailwind CSS
 - **Dark/Light Theme** - Elegant gradient backgrounds and glassmorphism effects
 - **Interactive Elements** - Smooth animations and hover effects
@@ -44,13 +44,13 @@
 - **Toast Notifications** - Real-time feedback for user actions
 - **Search & Filter** - Find files quickly with built-in search
 
-### 👑 **Admin Features**
+### Admin Features
 - **User Overview** - View all registered users and their details
 - **File Monitoring** - Complete file listing with uploader information
 - **Storage Analytics** - Track storage usage and file statistics
 - **User Activity** - Monitor user uploads and file management
 
-### 📊 **Storage Management**
+### Storage Management
 - **Storage Tracking** - Real-time storage usage monitoring
 - **File Statistics** - Display total files and formatted storage size
 - **Cloud Integration** - Seamless Supabase storage integration
@@ -60,7 +60,7 @@
 
 ---
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 ### **Backend**
 - **[Go](https://golang.org/)** - High-performance backend server
@@ -85,7 +85,7 @@
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Node.js 18+ and npm
@@ -134,9 +134,9 @@ npm start
 
 ---
 
-## 🐳 Docker Setup
+## Docker Setup
 
-## 📊 Container Architecture
+## Container Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -267,7 +267,7 @@ docker-compose down
 
 ---
 
-## 📋 File Upload Specifications
+## File Upload Specifications
 
 ### Storage Limits
 - **Maximum file size**: 10MB per file
@@ -286,7 +286,7 @@ docker-compose down
 
 ---
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -306,23 +306,23 @@ REACT_APP_GRAPHQL_ENDPOINT=https://your-backend.onrender.com/query
 
 ---
 
-## 📱 Screenshots
+## Screenshots
 
-### 🏠 Dashboard
+### Dashboard
 Beautiful, modern interface with glassmorphism design and intuitive file management.
 
-### 📤 File Upload
+### File Upload
 Drag and drop interface with real-time progress tracking and multi-file support.
 
-### 👑 Admin Panel
+### Admin Panel
 Comprehensive administrative interface for user and file management.
 
-### 📊 Storage Analytics
+### Storage Analytics
 Real-time storage usage tracking with formatted size display.
 
 ---
 
-## 🛠️ API Documentation
+## API Documentation
 
 ### GraphQL Schema
 
@@ -349,7 +349,7 @@ type Mutation {
 
 ---
 
-## 🚀 Deployment
+## Deployment
 
 ### Backend (Render)
 1. Connect your GitHub repository to Render
@@ -368,7 +368,7 @@ type Mutation {
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
@@ -380,13 +380,13 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **[Supabase](https://supabase.com/)** - For excellent cloud storage and database services
 - **[Render](https://render.com/)** - For reliable backend hosting and PostgreSQL
@@ -396,20 +396,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📞 Support
+## Support
 
 If you have any questions or need help, please:
 
-- 📧 Email: support@filevault.com
-- 🐛 [Report Issues](https://github.com/your-username/filevault/issues)
-- 💬 [Discussions](https://github.com/your-username/filevault/discussions)
+- Email: support@filevault.com
+- [Report Issues](https://github.com/your-username/filevault/issues)
+- [Discussions](https://github.com/your-username/filevault/discussions)
 
 ---
 
 <div align="center">
 
-**Built with ❤️ by [Your Name](https://github.com/your-username)**
+**Built by [Your Name](https://github.com/your-username)**
 
-⭐ Star this repository if you found it helpful!
+Star this repository if you found it helpful!
 
 </div>

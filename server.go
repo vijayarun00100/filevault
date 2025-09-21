@@ -26,7 +26,10 @@ func main() {
 		log.Println("No .env file found, using system environment variables")
 	}
 
-	connString := "postgres://postgres:root@localhost:5432/filevault?sslmode=disable"
+	connString := os.Getenv("DATABASE_URL")
+	if connString == "" {
+		connString = "postgres://postgres:root@localhost:5432/filevault?sslmode=disable"
+	}
 	database, err := db.NewDB(connString)
 	if err != nil {
 		log.Fatal(err)
@@ -51,8 +54,12 @@ func main() {
 	http.Handle("/query", AuthMiddleware(srv))
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("./uploads"))))
 	http.HandleFunc("/download/", PublicDownloadHandler(database))
-	log.Println("Server running on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("Server running on :%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
 func AuthMiddleware(next http.Handler) http.Handler {

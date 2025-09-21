@@ -54,6 +54,8 @@
 - **Storage Tracking** - Real-time storage usage monitoring
 - **File Statistics** - Display total files and formatted storage size
 - **Cloud Integration** - Seamless Supabase storage integration
+- **Storage Limits** - 10MB file size limit enforced via Supabase
+- **MIME Verification** - File type validation using Supabase (only allowed file types can be uploaded)
 - **Scalable Architecture** - Built to handle growing storage needs
 
 ---
@@ -90,6 +92,7 @@
 - Go 1.19+
 - PostgreSQL
 - Git
+- Docker (optional, for containerized deployment)
 
 ### Backend Setup
 
@@ -128,6 +131,158 @@ cp .env.example .env
 # Start development server
 npm start
 ```
+
+---
+
+## 🐳 Docker Setup
+
+## 📊 Container Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │    Backend      │    │   PostgreSQL    │
+│   (React+Nginx) │◄──►│   (Go+GraphQL)  │◄──►│   Database      │
+│   Port: 3000    │    │   Port: 8080    │    │   Port: 5432    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │   Supabase      │
+                       │   File Storage  │
+                       └─────────────────┘
+```
+
+### Backend (Docker)
+
+```bash
+# Build the Docker image
+docker build -t filevault-backend .
+
+# Run the container
+docker run -p 8080:8080 \
+  -e DATABASE_URL="your-database-url" \
+  -e SUPABASE_URL="https://your-project.supabase.co" \
+  -e SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \
+  -e JWT_CODE="your-jwt-secret" \
+  filevault-backend
+```
+
+### Frontend (Docker)
+
+```bash
+# Navigate to frontend directory
+cd filevault_frontend
+
+# Create Dockerfile for frontend
+cat > Dockerfile << EOF
+# Build stage
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY . .
+
+# Build the app
+RUN npm run build
+
+# Production stage
+FROM nginx:alpine
+
+# Copy built app to nginx
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# Copy nginx config (optional)
+# COPY nginx.conf /etc/nginx/nginx.conf
+
+# Expose port
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
+EOF
+
+# Build the Docker image
+docker build -t filevault-frontend .
+
+# Run the container
+docker run -p 3000:80 filevault-frontend
+```
+
+### Docker Compose (Full Stack)
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - JWT_CODE=${JWT_CODE}
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./filevault_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=filevault
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./setup_db.sql:/docker-entrypoint-initdb.d/setup_db.sql
+
+volumes:
+  postgres_data:
+```
+
+```bash
+# Run with Docker Compose
+docker-compose up -d
+
+# Stop services
+docker-compose down
+```
+
+---
+
+## 📋 File Upload Specifications
+
+### Storage Limits
+- **Maximum file size**: 10MB per file
+- **Storage provider**: Supabase Storage
+- **Enforcement**: Server-side validation before upload
+
+### MIME Type Verification
+- **Validation method**: Supabase built-in MIME type checking
+- **Allowed file types**: 
+  - Documents: PDF, DOC, DOCX, TXT
+  - Images: JPG, JPEG, PNG, GIF, WEBP
+  - Archives: ZIP, RAR
+  - Other formats as configured in Supabase
+- **Security**: Files are validated both client-side and server-side
+- **Rejection**: Invalid file types are automatically rejected during upload
 
 ---
 

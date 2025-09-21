@@ -50,8 +50,24 @@ func main() {
 		return graphql.DefaultErrorPresenter(ctx, e)
 	})
 
+	// Enable CORS for frontend
+	corsHandler := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+			
+			next.ServeHTTP(w, r)
+		})
+	}
+
 	http.Handle("/", playground.Handler("GraphQL Playground", "/query"))
-	http.Handle("/query", AuthMiddleware(srv))
+	http.Handle("/query", corsHandler(AuthMiddleware(srv)))
 	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("./uploads"))))
 	http.HandleFunc("/download/", PublicDownloadHandler(database))
 	port := os.Getenv("PORT")

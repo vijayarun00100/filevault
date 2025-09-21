@@ -186,6 +186,7 @@ func (r *mutationResolver) UploadFile(ctx context.Context, userID string, file g
 	}, nil
 }
 
+// DeleteFile is the resolver for the deleteFile field.
 func (r *mutationResolver) DeleteFile(ctx context.Context, fileID string) (bool, error) {
 	userID, authenticated := GetUserIDFromCtx(ctx)
 	if !authenticated {
@@ -259,6 +260,7 @@ func (r *mutationResolver) DeleteFile(ctx context.Context, fileID string) (bool,
 	return true, nil
 }
 
+// Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	userID, authenticated := GetUserIDFromCtx(ctx)
 	if !authenticated {
@@ -284,8 +286,8 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	return users, nil
 }
 
+// UserFiles is the resolver for the userFiles field.
 func (r *queryResolver) UserFiles(ctx context.Context, userID string) ([]*model.File, error) {
-
 	authUserID, authenticated := GetUserIDFromCtx(ctx)
 	if !authenticated {
 		return nil, fmt.Errorf("authentication required")
@@ -323,6 +325,68 @@ func (r *queryResolver) UserFiles(ctx context.Context, userID string) ([]*model.
 	return files, nil
 }
 
+// AllFiles returns all files in the system with user information (admin only)
+func (r *queryResolver) AllFiles(ctx context.Context) ([]*model.File, error) {
+	_, authenticated := GetUserIDFromCtx(ctx)
+	if !authenticated {
+		return nil, fmt.Errorf("authentication required")
+	}
+
+	rows, err := r.DB.Conn.Query(ctx, `
+		SELECT f.id, f.filename, f.path, f.uploaded_at, f.size, f.user_id, u.name, u.email
+		FROM files f
+		JOIN users u ON f.user_id = u.id
+		ORDER BY f.uploaded_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var files []*model.File
+	for rows.Next() {
+		var file model.File
+		var user model.User
+		var userName *string
+		var uploadedAt time.Time
+		var size int32
+
+		err := rows.Scan(
+			&file.ID,
+			&file.Filename,
+			&file.Path,
+			&uploadedAt,
+			&size,
+			&user.ID,
+			&userName,
+			&user.Email,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		file.UploadedAt = uploadedAt.Format(time.RFC3339)
+		file.Size = size
+
+		if userName != nil {
+			user.Name = userName
+		}
+
+		// Set download URL
+		supabaseURL := os.Getenv("SUPABASE_URL")
+		if supabaseURL != "" {
+			file.DownloadFile = fmt.Sprintf("%s/storage/v1/object/public/filevault/%s?download", supabaseURL, file.Path)
+		}
+
+		file.User = &user
+		files = append(files, &file)
+	}
+
+	fmt.Printf("Retrieved %d files for admin\n", len(files))
+	return files, nil
+}
+
+// DownloadFile is the resolver for the downloadFile field.
 func (r *queryResolver) DownloadFile(ctx context.Context, fileID string) (*model.File, error) {
 	userID, authenticated := GetUserIDFromCtx(ctx)
 	if !authenticated {
@@ -358,8 +422,8 @@ func (r *queryResolver) DownloadFile(ctx context.Context, fileID string) (*model
 	return &file, nil
 }
 
+// UserStorageInfo is the resolver for the userStorageInfo field.
 func (r *queryResolver) UserStorageInfo(ctx context.Context, userID string) (*model.StorageInfo, error) {
-
 	authUserID, authenticated := GetUserIDFromCtx(ctx)
 	if !authenticated {
 		return nil, fmt.Errorf("authentication required")

@@ -59,6 +59,7 @@ type ComplexityRoot struct {
 		Path         func(childComplexity int) int
 		Size         func(childComplexity int) int
 		UploadedAt   func(childComplexity int) int
+		User         func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -70,6 +71,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		AllFiles        func(childComplexity int) int
 		DownloadFile    func(childComplexity int, fileID string) int
 		UserFiles       func(childComplexity int, userID string) int
 		UserStorageInfo func(childComplexity int, userID string) int
@@ -100,6 +102,7 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Users(ctx context.Context) ([]*model.User, error)
 	UserFiles(ctx context.Context, userID string) ([]*model.File, error)
+	AllFiles(ctx context.Context) ([]*model.File, error)
 	DownloadFile(ctx context.Context, fileID string) (*model.File, error)
 	UserStorageInfo(ctx context.Context, userID string) (*model.StorageInfo, error)
 }
@@ -172,6 +175,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.File.UploadedAt(childComplexity), true
+	case "File.user":
+		if e.complexity.File.User == nil {
+			break
+		}
+
+		return e.complexity.File.User(childComplexity), true
 
 	case "Mutation.createUser":
 		if e.complexity.Mutation.CreateUser == nil {
@@ -229,6 +238,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.UploadFile(childComplexity, args["userID"].(string), args["file"].(graphql.Upload)), true
 
+	case "Query.allFiles":
+		if e.complexity.Query.AllFiles == nil {
+			break
+		}
+
+		return e.complexity.Query.AllFiles(childComplexity), true
 	case "Query.downloadFile":
 		if e.complexity.Query.DownloadFile == nil {
 			break
@@ -849,6 +864,45 @@ func (ec *executionContext) fieldContext_File_size(_ context.Context, field grap
 	return fc, nil
 }
 
+func (ec *executionContext) _File_user(ctx context.Context, field graphql.CollectedField, obj *model.File) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_File_user,
+		func(ctx context.Context) (any, error) {
+			return obj.User, nil
+		},
+		nil,
+		ec.marshalNUser2ᚖfilevaultᚋgraphᚋmodelᚐUser,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_File_user(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "File",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1025,6 +1079,8 @@ func (ec *executionContext) fieldContext_Mutation_uploadFile(ctx context.Context
 				return ec.fieldContext_File_downloadFile(ctx, field)
 			case "size":
 				return ec.fieldContext_File_size(ctx, field)
+			case "user":
+				return ec.fieldContext_File_user(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
 		},
@@ -1160,6 +1216,8 @@ func (ec *executionContext) fieldContext_Query_userFiles(ctx context.Context, fi
 				return ec.fieldContext_File_downloadFile(ctx, field)
 			case "size":
 				return ec.fieldContext_File_size(ctx, field)
+			case "user":
+				return ec.fieldContext_File_user(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
 		},
@@ -1174,6 +1232,51 @@ func (ec *executionContext) fieldContext_Query_userFiles(ctx context.Context, fi
 	if fc.Args, err = ec.field_Query_userFiles_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_allFiles(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_allFiles,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().AllFiles(ctx)
+		},
+		nil,
+		ec.marshalNFile2ᚕᚖfilevaultᚋgraphᚋmodelᚐFileᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_allFiles(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_File_id(ctx, field)
+			case "filename":
+				return ec.fieldContext_File_filename(ctx, field)
+			case "path":
+				return ec.fieldContext_File_path(ctx, field)
+			case "uploadedAt":
+				return ec.fieldContext_File_uploadedAt(ctx, field)
+			case "downloadFile":
+				return ec.fieldContext_File_downloadFile(ctx, field)
+			case "size":
+				return ec.fieldContext_File_size(ctx, field)
+			case "user":
+				return ec.fieldContext_File_user(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -1215,6 +1318,8 @@ func (ec *executionContext) fieldContext_Query_downloadFile(ctx context.Context,
 				return ec.fieldContext_File_downloadFile(ctx, field)
 			case "size":
 				return ec.fieldContext_File_size(ctx, field)
+			case "user":
+				return ec.fieldContext_File_user(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type File", field.Name)
 		},
@@ -3132,6 +3237,11 @@ func (ec *executionContext) _File(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "user":
+			out.Values[i] = ec._File_user(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3283,6 +3393,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_userFiles(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "allFiles":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_allFiles(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}

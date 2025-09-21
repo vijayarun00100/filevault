@@ -14,6 +14,7 @@ type File struct {
 	UploadedAt   string `json:"uploadedAt"`
 	DownloadFile string `json:"downloadFile"`
 	Size         int32  `json:"size"`
+	User         *User  `json:"user"`
 }
 
 type Mutation struct {
